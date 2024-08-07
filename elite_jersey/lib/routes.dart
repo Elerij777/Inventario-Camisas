@@ -1,1 +1,1 @@
-enum MyRoutes { Main, Agregar, JerseyDetalle }
+enum MyRoutes { Main, Agregar, JerseyDetalle, EditarJersey }

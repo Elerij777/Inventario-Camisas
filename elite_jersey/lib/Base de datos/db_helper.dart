@@ -1,11 +1,13 @@
 import 'package:elite_jersey/Base de datos/jersey.dart';
+import 'package:elite_jersey/Base de datos/venta.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
 class DBHelper {
   static Database? _db;
   static final int _version = 1;
-  static final String _tableName = "jerseys";
+  static final String _jerseysTable = "jerseys";
+  static final String _ventasTable = "ventas";
 
   // Inicializar la base de datos
   static Future<void> initDB() async {
@@ -17,8 +19,8 @@ class DBHelper {
         _path,
         version: _version,
         onCreate: (db, version) {
-          return db.execute(
-            "CREATE TABLE $_tableName ("
+          db.execute(
+            "CREATE TABLE $_jerseysTable ("
             "id INTEGER PRIMARY KEY AUTOINCREMENT,"
             "nombreJersey TEXT,"
             "anio INTEGER,"
@@ -28,6 +30,16 @@ class DBHelper {
             "precio REAL"
             ")",
           );
+          db.execute(
+            "CREATE TABLE $_ventasTable ("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "jerseyId INTEGER,"
+            "cantidad INTEGER,"
+            "precio REAL,"
+            "fecha TEXT,"
+            "FOREIGN KEY (jerseyId) REFERENCES $_jerseysTable (id)"
+            ")",
+          );
         },
       );
     } catch (e) {
@@ -35,58 +47,69 @@ class DBHelper {
     }
   }
 
-  // Insertar un nuevo jersey
-  static Future<int> insert(Jersey? jersey) async {
-    if (_db == null) {
-      throw Exception('Database not initialized');
-    }
+  // Métodos para Jerseys
+  static Future<int> insertJersey(Jersey? jersey) async {
+    if (_db == null) throw Exception('Database not initialized');
 
-    // Convertir listas a JSON para almacenar
     final Map<String, dynamic> jerseyJson = jersey!.toJson();
-    jerseyJson['cantidades'] = (jersey.cantidades ?? [])
-        .join(','); // Convertir lista de cantidades a String
+    jerseyJson['cantidades'] = (jersey.cantidades ?? []).join(',');
 
-    return await _db!.insert(_tableName, jerseyJson);
+    return await _db!.insert(_jerseysTable, jerseyJson);
   }
 
-  // Consultar todos los jerseys
-  static Future<List<Jersey>> query() async {
-    if (_db == null) {
-      throw Exception('Database not initialized');
-    }
+  static Future<List<Jersey>> queryJerseys() async {
+    if (_db == null) throw Exception('Database not initialized');
 
-    final List<Map<String, dynamic>> maps = await _db!.query(_tableName);
+    final List<Map<String, dynamic>> maps = await _db!.query(_jerseysTable);
 
-    return List.generate(maps.length, (i) {
-      final jersey = Jersey.fromJson(maps[i]);
-      return jersey;
-    });
+    return List.generate(maps.length, (i) => Jersey.fromJson(maps[i]));
   }
 
-  // Eliminar un jersey
-  static Future<int> delete(int id) async {
-    if (_db == null) {
-      throw Exception('Database not initialized');
-    }
-    return await _db!.delete(_tableName, where: 'id = ?', whereArgs: [id]);
+  static Future<int> deleteJersey(int id) async {
+    if (_db == null) throw Exception('Database not initialized');
+    return await _db!.delete(_jerseysTable, where: 'id = ?', whereArgs: [id]);
   }
 
-  // Actualizar un jersey
-  static Future<int> update(Jersey jersey) async {
-    if (_db == null) {
-      throw Exception('Database not initialized');
-    }
+  static Future<int> updateJersey(Jersey jersey) async {
+    if (_db == null) throw Exception('Database not initialized');
 
-    // Convertir listas a JSON para actualizar
     final Map<String, dynamic> jerseyJson = jersey.toJson();
-    jerseyJson['cantidades'] = (jersey.cantidades ?? [])
-        .join(','); // Convertir lista de cantidades a String
+    jerseyJson['cantidades'] = (jersey.cantidades ?? []).join(',');
 
     return await _db!.update(
-      _tableName,
+      _jerseysTable,
       jerseyJson,
       where: 'id = ?',
       whereArgs: [jersey.id],
+    );
+  }
+
+  // Métodos para Ventas
+  static Future<int> insertVenta(Venta? venta) async {
+    if (_db == null) throw Exception('Database not initialized');
+    return await _db!.insert(_ventasTable, venta!.toJson());
+  }
+
+  static Future<List<Venta>> queryVentas() async {
+    if (_db == null) throw Exception('Database not initialized');
+
+    final List<Map<String, dynamic>> maps = await _db!.query(_ventasTable);
+
+    return List.generate(maps.length, (i) => Venta.fromJson(maps[i]));
+  }
+
+  static Future<int> deleteVenta(int id) async {
+    if (_db == null) throw Exception('Database not initialized');
+    return await _db!.delete(_ventasTable, where: 'id = ?', whereArgs: [id]);
+  }
+
+  static Future<int> updateVenta(Venta venta) async {
+    if (_db == null) throw Exception('Database not initialized');
+    return await _db!.update(
+      _ventasTable,
+      venta.toJson(),
+      where: 'id = ?',
+      whereArgs: [venta.id],
     );
   }
 }

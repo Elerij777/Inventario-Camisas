@@ -25,7 +25,7 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
     try {
       await DBHelper
           .initDB(); // Asegúrate de que la base de datos esté inicializada
-      List<Jersey> jerseys = await DBHelper.query();
+      List<Jersey> jerseys = await DBHelper.queryJerseys();
       setState(() {
         _jerseys = jerseys;
       });

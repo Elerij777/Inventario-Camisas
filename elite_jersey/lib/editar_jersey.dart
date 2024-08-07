@@ -1,19 +1,19 @@
-import 'package:elite_jersey/editar_jersey.dart';
 import 'package:flutter/material.dart';
 
+import 'Base de datos/db_helper.dart';
 import 'Base de datos/jersey.dart';
 import 'Dart:io';
 
-class JerseyDetalle extends StatefulWidget {
+class EditarJersey extends StatefulWidget {
   final Jersey jersey;
 
-  JerseyDetalle({required this.jersey});
+  EditarJersey({required this.jersey});
 
   @override
-  _JerseyDetalleState createState() => _JerseyDetalleState();
+  _EditarJerseyState createState() => _EditarJerseyState();
 }
 
-class _JerseyDetalleState extends State<JerseyDetalle> {
+class _EditarJerseyState extends State<EditarJersey> {
   late TextEditingController _nombreController;
   late TextEditingController _anioController;
   late TextEditingController _numeroEquipacionController;
@@ -56,6 +56,50 @@ class _JerseyDetalleState extends State<JerseyDetalle> {
     super.dispose();
   }
 
+  Future<void> _updateJersey() async {
+    final nombre = _nombreController.text;
+    final anio = int.tryParse(_anioController.text);
+    final numeroEquipacion = int.tryParse(_numeroEquipacionController.text);
+    final precio = double.tryParse(_precioController.text);
+
+    // Validar los datos
+    if (nombre.isEmpty ||
+        anio == null ||
+        numeroEquipacion == null ||
+        precio == null) {
+      _showErrorDialog('Por favor, rellena todos los campos');
+      return;
+    }
+
+    // Verificar que las cantidades no sean negativas
+    bool cantidadesValidas =
+        _cantidades.values.every((cantidad) => cantidad >= 0);
+    if (!cantidadesValidas) {
+      _showErrorDialog('Las cantidades no pueden ser negativas');
+      return;
+    }
+
+    // Actualizar la instancia de Jersey
+    Jersey updatedJersey = Jersey(
+      id: widget.jersey.id,
+      nombreJersey: nombre,
+      anio: anio,
+      numeroEquipacion: numeroEquipacion,
+      cantidades: _cantidades.values.toList(),
+      imagen: widget.jersey.imagen,
+      precio: precio,
+    );
+
+    // Guardar en la base de datos
+    try {
+      await DBHelper.updateJersey(updatedJersey);
+      _showSuccessDialog('Jersey actualizado exitosamente');
+      Navigator.pop(context); // Volver a la pantalla anterior
+    } catch (e) {
+      _showErrorDialog('Error: ${e.toString()}');
+    }
+  }
+
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
@@ -95,18 +139,7 @@ class _JerseyDetalleState extends State<JerseyDetalle> {
         title: Text('Detalle del Jersey'),
         backgroundColor: Color.fromARGB(255, 39, 50, 64),
         foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.edit),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => EditarJersey(jersey: widget.jersey)),
-              ).then((_) => Navigator.pop(context));
-            },
-          ),
-        ],
+        actions: [],
       ),
       body: Stack(
         children: [
@@ -143,49 +176,43 @@ class _JerseyDetalleState extends State<JerseyDetalle> {
                           size: 200,
                         ),
 
-                  SizedBox(height: 10.0),
                   // Información del jersey
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Text(
-                      'Equipo: ${_nombreController.text}',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 16,
-                      ),
+                  TextField(
+                    controller: _nombreController,
+                    decoration: InputDecoration(
+                      labelText: 'Equipo',
+                      fillColor: Colors.white,
+                      filled: true,
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Text(
-                      'Año: ${_anioController.text}',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 16,
-                      ),
+                  TextField(
+                    controller: _anioController,
+                    decoration: InputDecoration(
+                      labelText: 'Año',
+                      fillColor: Colors.white,
+                      filled: true,
                     ),
+                    keyboardType: TextInputType.number,
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Text(
-                      'Número de Equipación: ${_numeroEquipacionController.text}',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 16,
-                      ),
+                  TextField(
+                    controller: _numeroEquipacionController,
+                    decoration: InputDecoration(
+                      labelText: 'Número de Equipación',
+                      fillColor: Colors.white,
+                      filled: true,
                     ),
+                    keyboardType: TextInputType.number,
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Text(
-                      'Precio: ${_precioController.text}',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 16,
-                      ),
+                  TextField(
+                    controller: _precioController,
+                    decoration: InputDecoration(
+                      labelText: 'Precio',
+                      fillColor: Colors.white,
+                      filled: true,
                     ),
+                    keyboardType:
+                        TextInputType.numberWithOptions(decimal: true),
                   ),
-
                   SizedBox(height: 16.0),
                   Column(
                     children: List.generate(_cantidades.length, (index) {
@@ -193,10 +220,37 @@ class _JerseyDetalleState extends State<JerseyDetalle> {
                         children: [
                           Text(_tallas[index]),
                           Spacer(),
+                          IconButton(
+                            icon: Icon(Icons.remove),
+                            onPressed: () {
+                              setState(() {
+                                _cantidades[index] = (_cantidades[index]! - 1)
+                                    .clamp(0, double.infinity)
+                                    .toInt();
+                              });
+                            },
+                          ),
                           Text('${_cantidades[index]}'),
+                          IconButton(
+                            icon: Icon(Icons.add),
+                            onPressed: () {
+                              setState(() {
+                                _cantidades[index] = _cantidades[index]! + 1;
+                              });
+                            },
+                          ),
                         ],
                       );
                     }),
+                  ),
+                  SizedBox(height: 16.0),
+                  ElevatedButton(
+                    onPressed: _updateJersey,
+                    child: Text('Actualizar Jersey'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color.fromARGB(255, 39, 50, 64),
+                      foregroundColor: Colors.white,
+                    ),
                   ),
                 ],
               ),

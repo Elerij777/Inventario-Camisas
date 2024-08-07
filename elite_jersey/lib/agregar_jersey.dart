@@ -88,11 +88,10 @@ class _AgregarJerseyState extends State<AgregarJersey> {
 
     // Guardar en la base de datos
     try {
-      int result = await DBHelper.insert(nuevoJersey);
+      int result = await DBHelper.insertJersey(nuevoJersey);
       if (result > 0) {
         // Mostrar mensaje de éxito
         _showSuccessDialog('Jersey agregado exitosamente');
-        Navigator.pop(context);
       } else {
         // Mostrar mensaje de error
         _showErrorDialog('Error al agregar el jersey');
@@ -100,6 +99,7 @@ class _AgregarJerseyState extends State<AgregarJersey> {
     } catch (e) {
       _showErrorDialog('Error: ${e.toString()}');
     }
+    Navigator.pop(context);
   }
 
 // Método para mostrar un cuadro de diálogo de error
